@@ -2044,18 +2044,35 @@ alter publication supabase_realtime add table leads;</pre>
     const SUPABASE_ANON_KEY = 'sb_publishable_v2uicER8SS9AUnLpKDM4uA_g5WnahZx';
 
     async function initSupabase() {
-      window.supabaseClient = supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-      );
+      try {
+        _sb = supabase.createClient(
+          SUPABASE_URL,
+          SUPABASE_ANON_KEY,
+          {
+            realtime: {
+              params: { eventsPerSecond: 5 }
+            }
+          }
+        );
 
-      // ทดสอบเชื่อมต่อ
-      const { error } = await supabaseClient
-        .from('jobs')
-        .select('id')
-        .limit(1);
+        const { error } = await _sb
+          .from('jobs')
+          .select('id')
+          .limit(1);
 
-      return !error;
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+
+        _useSupabase = true;
+        setupRealtime();
+
+        return true;
+      } catch (e) {
+        console.error(e);
+        _useSupabase = false;
+        return false;
+      }
     }
 
     // async function initSupabase() {
@@ -5056,45 +5073,45 @@ Just output the raw text you can read, no formatting needed.`;
       await _bootstrapData();
     }
 
-    function showSbSetup() {
-      console.log(document.getElementById('sbSetupOverlay'));
-      const overlay = $('sbSetupOverlay');
-      overlay.style.display = 'flex';
-      const saved_url = localStorage.getItem('sb_url') || '';
-      const saved_key = localStorage.getItem('sb_key') || '';
-      if (saved_url) $('sbUrlInput').value = saved_url;
-      if (saved_key) $('sbKeyInput').value = saved_key;
+    // function showSbSetup() {
+    //   console.log(document.getElementById('sbSetupOverlay'));
+    //   const overlay = $('sbSetupOverlay');
+    //   overlay.style.display = 'flex';
+    //   const saved_url = localStorage.getItem('sb_url') || '';
+    //   const saved_key = localStorage.getItem('sb_key') || '';
+    //   if (saved_url) $('sbUrlInput').value = saved_url;
+    //   if (saved_key) $('sbKeyInput').value = saved_key;
 
-      $('sbConnectBtn').onclick = async function () {
-        const url = $('sbUrlInput').value.trim();
-        const key = $('sbKeyInput').value.trim();
-        $('sbSetupErr').textContent = '';
-        if (!url || !key) { $('sbSetupErr').textContent = 'กรุณากรอกทั้ง URL และ Key ค่ะ'; return; }
-        $('sbConnectBtn').textContent = '🔄 กำลังเชื่อมต่อ...';
-        $('sbConnectBtn').disabled = true;
-        localStorage.setItem('sb_url', url);
-        localStorage.setItem('sb_key', key);
-        const ok = await initSupabase();
-        if (ok) {
-          localStorage.setItem('sb_setup_done', '1');
-          overlay.style.display = 'none';
-          toast('✅ เชื่อมต่อ Supabase สำเร็จ!');
-          await _bootstrapData();
-        } else {
-          $('sbSetupErr').textContent = '❌ เชื่อมต่อไม่ได้ — กรุณาตรวจสอบ URL / Key และแน่ใจว่า run SQL แล้วค่ะ';
-          localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key');
-          $('sbConnectBtn').textContent = '🔌 เชื่อมต่อ Supabase';
-          $('sbConnectBtn').disabled = false;
-        }
-      };
+    //   $('sbConnectBtn').onclick = async function () {
+    //     const url = $('sbUrlInput').value.trim();
+    //     const key = $('sbKeyInput').value.trim();
+    //     $('sbSetupErr').textContent = '';
+    //     if (!url || !key) { $('sbSetupErr').textContent = 'กรุณากรอกทั้ง URL และ Key ค่ะ'; return; }
+    //     $('sbConnectBtn').textContent = '🔄 กำลังเชื่อมต่อ...';
+    //     $('sbConnectBtn').disabled = true;
+    //     localStorage.setItem('sb_url', url);
+    //     localStorage.setItem('sb_key', key);
+    //     const ok = await initSupabase();
+    //     if (ok) {
+    //       localStorage.setItem('sb_setup_done', '1');
+    //       overlay.style.display = 'none';
+    //       toast('✅ เชื่อมต่อ Supabase สำเร็จ!');
+    //       await _bootstrapData();
+    //     } else {
+    //       $('sbSetupErr').textContent = '❌ เชื่อมต่อไม่ได้ — กรุณาตรวจสอบ URL / Key และแน่ใจว่า run SQL แล้วค่ะ';
+    //       localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key');
+    //       $('sbConnectBtn').textContent = '🔌 เชื่อมต่อ Supabase';
+    //       $('sbConnectBtn').disabled = false;
+    //     }
+    //   };
 
-      $('sbSkipBtn').onclick = async function () {
-        localStorage.setItem('sb_setup_done', 'skip');
-        overlay.style.display = 'none';
-        toast('ใช้ Local Storage (window.storage) ค่ะ');
-        await _bootstrapData();
-      };
-    }
+    //   $('sbSkipBtn').onclick = async function () {
+    //     localStorage.setItem('sb_setup_done', 'skip');
+    //     overlay.style.display = 'none';
+    //     toast('ใช้ Local Storage (window.storage) ค่ะ');
+    //     await _bootstrapData();
+    //   };
+    // }
 
     async function _bootstrapData() {
       await loadUsers();
@@ -5133,11 +5150,15 @@ Just output the raw text you can read, no formatting needed.`;
     window.addEventListener('DOMContentLoaded', async () => {
       const ok = await initSupabase();
 
-      if (ok) {
-        await _bootstrapData();
-      } else {
-        console.error('ไม่สามารถเชื่อมต่อ Supabase ได้');
+      if (!ok) {
+        alert('ไม่สามารถเชื่อมต่อฐานข้อมูลได้');
+        return;
       }
+
+      _useSupabase = true;
+      setupRealtime();
+
+      await _bootstrapData();
     });
 
     setInterval(render, 60000);
