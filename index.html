@@ -2040,26 +2040,44 @@ alter publication supabase_realtime add table leads;</pre>
 
     function sbClient() { return _sb; }
 
+    const SUPABASE_URL = 'https://bnyxrpswznpabgtbfrya.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_v2uicER8SS9AUnLpKDM4uA_g5WnahZx';
+
     async function initSupabase() {
-      const url = localStorage.getItem('sb_url') || '';
-      const key = localStorage.getItem('sb_key') || '';
-      if (!url || !key) return false;
-      try {
-        _sb = window.supabase.createClient(url, key, {
-          realtime: { params: { eventsPerSecond: 5 } }
-        });
-        // ทดสอบ connection
-        const { error } = await _sb.from('jobs').select('id').limit(1);
-        if (error && error.code !== 'PGRST116') throw error;
-        _useSupabase = true;
-        setupRealtime();
-        return true;
-      } catch (e) {
-        console.error('Supabase init error:', e);
-        _sb = null; _useSupabase = false;
-        return false;
-      }
+      window.supabaseClient = supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+      );
+
+      // ทดสอบเชื่อมต่อ
+      const { error } = await supabaseClient
+        .from('jobs')
+        .select('id')
+        .limit(1);
+
+      return !error;
     }
+
+    // async function initSupabase() {
+    //   const url = localStorage.getItem('sb_url') || '';
+    //   const key = localStorage.getItem('sb_key') || '';
+    //   if (!url || !key) return false;
+    //   try {
+    //     _sb = window.supabase.createClient(url, key, {
+    //       realtime: { params: { eventsPerSecond: 5 } }
+    //     });
+    //     // ทดสอบ connection
+    //     const { error } = await _sb.from('jobs').select('id').limit(1);
+    //     if (error && error.code !== 'PGRST116') throw error;
+    //     _useSupabase = true;
+    //     setupRealtime();
+    //     return true;
+    //   } catch (e) {
+    //     console.error('Supabase init error:', e);
+    //     _sb = null; _useSupabase = false;
+    //     return false;
+    //   }
+    // }
 
     // ── Real-time subscriptions ──────────────────────────────────────────
     function setupRealtime() {
@@ -5110,7 +5128,17 @@ Just output the raw text you can read, no formatting needed.`;
       }
     }
 
-    bootstrapApp();
+    // bootstrapApp();
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const ok = await initSupabase();
+
+      if (ok) {
+        await _bootstrapData();
+      } else {
+        console.error('ไม่สามารถเชื่อมต่อ Supabase ได้');
+      }
+    });
 
     setInterval(render, 60000);
     setInterval(checkEmailReminders, 5 * 60000);
