@@ -1914,6 +1914,7 @@ alter publication supabase_realtime add table leads;</pre>
     // ===== ฟังก์ชัน Lead ลูกค้า =====
     const LEAD_CHANNELS = ["Google", "Facebook", "IG", "Tiktok", "อื่นๆ"];
     const THAI_PROVINCES = ["กระบี่", "กรุงเทพมหานคร", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร", "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา", "ชลบุรี", "ชัยนาท", "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง", "ตราด", "ตาก", "นครนายก", "นครปฐม", "นครพนม", "นครราชสีมา", "นครศรีธรรมราช", "นครสวรรค์", "นนทบุรี", "นราธิวาส", "น่าน", "บึงกาฬ", "บุรีรัมย์", "ปทุมธานี", "ประจวบคีรีขันธ์", "ปราจีนบุรี", "ปัตตานี", "พระนครศรีอยุธยา", "พะเยา", "พังงา", "พัทลุง", "พิจิตร", "พิษณุโลก", "เพชรบุรี", "เพชรบูรณ์", "แพร่", "ภูเก็ต", "มหาสารคาม", "มุกดาหาร", "แม่ฮ่องสอน", "ยโสธร", "ยะลา", "ร้อยเอ็ด", "ระนอง", "ระยอง", "ราชบุรี", "ลพบุรี", "ลำปาง", "ลำพูน", "เลย", "ศรีสะเกษ", "สกลนคร", "สงขลา", "สตูล", "สมุทรปราการ", "สมุทรสงคราม", "สมุทรสาคร", "สระแก้ว", "สระบุรี", "สิงห์บุรี", "สุโขทัย", "สุพรรณบุรี", "สุราษฎร์ธานี", "สุรินทร์", "หนองคาย", "หนองบัวลำภู", "อ่างทอง", "อำนาจเจริญ", "อุดรธานี", "อุตรดิตถ์", "อุทัยธานี", "อุบลราชธานี"];
+    // const PRODUCT_TYPES = ["เสื้อโปโล", "เสื้อพละโทเร", "เสื้อยืด", "ชุดนักเรียน", "ชุดช็อป", "ผ้ากันเปื้อน", "กางเกงวอม", "หมวก", "ถุงผ้า", "อื่นๆ"];
     const PRODUCT_TYPES = ["เสื้อโปโล", "เสื้อยืด", "ชุดนักเรียน", "ชุดช็อป", "ผ้ากันเปื้อน", "หมวก"];
 
     // ===== ข้อมูลยอดขายย้อนหลัง (นำเข้าจากรายงานเก่า ม.ค.2022 - บางส่วนปี 2026) =====
@@ -2188,21 +2189,69 @@ alter publication supabase_realtime add table leads;</pre>
     }
 
     // ── Jobs CRUD ────────────────────────────────────────────────────────
+    // async function loadJobs() {
+    //   try {
+    //     if (_useSupabase) {
+    //       const { data, error } = await _sb.from('jobs').select('*');
+    //       if (error) throw error;
+    //       jobs = (data || []).map(dbRowToJob).sort((a, b) => b.createdAt - a.createdAt);
+    //     } else {
+    //       const res = await window.storage.get("jobs", true);
+    //       jobs = res && res.value ? JSON.parse(res.value) : [];
+    //     }
+    //   } catch (e) { console.error('loadJobs', e); jobs = []; }
+    //   if (!jobs.length) { jobs = seedData(); await saveJobs(); }
+    //   render();
+    //   const od = jobs.filter(j => getOverdueInfo(j)).length;
+    //   if (od > 0) setTimeout(() => toast(`⚠ มีงานค้างเกินกำหนด ${od} รายการ`), 500);
+    //   setTimeout(checkEmailReminders, 900);
+    // }
+
     async function loadJobs() {
+      let loadSuccess = false;
+
+
       try {
         if (_useSupabase) {
           const { data, error } = await _sb.from('jobs').select('*');
+
           if (error) throw error;
-          jobs = (data || []).map(dbRowToJob).sort((a, b) => b.createdAt - a.createdAt);
+
+          jobs = (data || [])
+            .map(dbRowToJob)
+            .sort((a, b) => b.createdAt - a.createdAt);
+
+          loadSuccess = true;
         } else {
           const res = await window.storage.get("jobs", true);
-          jobs = res && res.value ? JSON.parse(res.value) : [];
+
+          jobs = res && res.value
+            ? JSON.parse(res.value)
+            : [];
+
+          loadSuccess = true;
         }
-      } catch (e) { console.error('loadJobs', e); jobs = []; }
-      if (!jobs.length) { jobs = seedData(); await saveJobs(); }
+      } catch (e) {
+        console.error('loadJobs', e);
+        return; // ไม่ทำอะไรต่อ
+      }
+
+      // Seed เฉพาะกรณีโหลดสำเร็จและไม่มีข้อมูลจริง
+      if (loadSuccess && jobs.length === 0) {
+        jobs = seedData();
+        await saveJobs();
+      }
+
       render();
+
       const od = jobs.filter(j => getOverdueInfo(j)).length;
-      if (od > 0) setTimeout(() => toast(`⚠ มีงานค้างเกินกำหนด ${od} รายการ`), 500);
+
+      if (od > 0) {
+        setTimeout(() =>
+          toast(`⚠ มีงานค้างเกินกำหนด ${od} รายการ`)
+          , 500);
+      }
+
       setTimeout(checkEmailReminders, 900);
     }
 
