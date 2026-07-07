@@ -1464,6 +1464,27 @@
         min-width: 90px;
       }
     }
+
+    .date-filter-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .date-filt {
+      width: 145px;
+      padding: 11px 12px;
+      border: none;
+      border-radius: 9px;
+      background: #fff;
+      font-family: 'Sarabun';
+      font-size: 14px;
+      color: var(--ink);
+    }
+
+    .date-filt:focus {
+      outline: 2px solid var(--amber);
+    }
   </style>
 </head>
 
@@ -1489,9 +1510,9 @@
       <div class="login-err" id="loginErr"></div>
       <button class="btn primary" id="loginBtn" style="width:100%;margin-top:6px;">เข้าสู่ระบบ</button>
       <div style="margin-top:12px;text-align:center;">
-        <button id="resetUsersBtn"
+        <!-- <button id="resetUsersBtn"
           style="background:none;border:none;color:var(--ink-soft);font-size:12px;cursor:pointer;text-decoration:underline;">🔄
-          รีเซ็ตรหัสผ่านทั้งหมดเป็น 123456</button>
+          รีเซ็ตรหัสผ่านทั้งหมดเป็น 123456</button> -->
       </div>
     </div>
   </div>
@@ -1542,10 +1563,16 @@
           <option value="emailUnsent">📧 ยังไม่ส่งอีเมลออกออเดอร์</option>
           <option value="cancelled">❌ ยกเลิก</option>
         </select>
-        <div style="display:flex;gap:6px;align-items:center;">
+        <!-- <div style="display:flex;gap:6px;align-items:center;">
           <input type="date" id="filterDateFrom" class="filt" style="width:130px;" title="วันที่เริ่มต้น">
           <span style="color:var(--ink-soft);font-size:12px;">ถึง</span>
           <input type="date" id="filterDateTo" class="filt" style="width:130px;" title="วันที่สิ้นสุด">
+          <button class="btn ghost" id="clearDateFilter" style="padding:5px 9px;font-size:12px;display:none;">✕</button>
+        </div> -->
+        <div class="date-filter-wrap">
+          <input type="date" id="filterDateFrom" class="filt date-filt" title="วันที่เริ่มต้น">
+          <span class="date-separator">ถึง</span>
+          <input type="date" id="filterDateTo" class="filt date-filt" title="วันที่สิ้นสุด">
           <button class="btn ghost" id="clearDateFilter" style="padding:5px 9px;font-size:12px;display:none;">✕</button>
         </div>
         <div class="view-toggle">
@@ -5069,29 +5096,29 @@ Just output the raw text you can read, no formatting needed.`;
 
     // ===== Login / จัดการผู้ใช้งาน wiring =====
     $("loginBtn").onclick = tryLogin;
-    $("resetUsersBtn").onclick = async function () {
-      if (!confirm("รีเซ็ตรหัสผ่านทุกคนเป็น 123456 ใช่หรือไม่?")) return;
-      // โหลด users จาก storage ก่อน
-      try {
-        const res = await window.storage.get("users", true);
-        if (res && res.value) users = JSON.parse(res.value);
-      } catch (e) { }
+    // $("resetUsersBtn").onclick = async function () {
+    //   if (!confirm("รีเซ็ตรหัสผ่านทุกคนเป็น 123456 ใช่หรือไม่?")) return;
+    //   // โหลด users จาก storage ก่อน
+    //   try {
+    //     const res = await window.storage.get("users", true);
+    //     if (res && res.value) users = JSON.parse(res.value);
+    //   } catch (e) { }
 
-      if (!users.length) {
-        // ไม่มี user เลย → seed ใหม่ทั้งหมด
-        users = SEED_STAFF_NAMES.map((name, i) => ({
-          id: "user_" + Date.now() + "_" + i, name, username: name, password: "123456",
-          role: DEFAULT_MANAGERS.includes(name) ? "manager" : "staff", active: true, createdAt: Date.now()
-        }));
-      } else {
-        // มี user อยู่แล้ว → reset รหัสทุกคนเป็น 123456
-        users.forEach(u => { u.password = "123456"; u.active = true; });
-      }
-      await saveUsers();
-      const errEl = $("loginErr");
-      errEl.style.color = "var(--khaki-green)";
-      errEl.textContent = "✓ รีเซ็ตแล้วค่ะ — ทุกคนใช้รหัส 123456 ได้เลย";
-    };
+    //   if (!users.length) {
+    //     // ไม่มี user เลย → seed ใหม่ทั้งหมด
+    //     users = SEED_STAFF_NAMES.map((name, i) => ({
+    //       id: "user_" + Date.now() + "_" + i, name, username: name, password: "123456",
+    //       role: DEFAULT_MANAGERS.includes(name) ? "manager" : "staff", active: true, createdAt: Date.now()
+    //     }));
+    //   } else {
+    //     // มี user อยู่แล้ว → reset รหัสทุกคนเป็น 123456
+    //     users.forEach(u => { u.password = "123456"; u.active = true; });
+    //   }
+    //   await saveUsers();
+    //   const errEl = $("loginErr");
+    //   errEl.style.color = "var(--khaki-green)";
+    //   errEl.textContent = "✓ รีเซ็ตแล้วค่ะ — ทุกคนใช้รหัส 123456 ได้เลย";
+    // };
     $("loginPassword").addEventListener('keydown', (e) => { if (e.key === 'Enter') tryLogin(); });
     $("loginUsername").addEventListener('keydown', (e) => { if (e.key === 'Enter') $("loginPassword").focus(); });
     $("manageUsersBtn").onclick = openUserModal;
